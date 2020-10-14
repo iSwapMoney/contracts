@@ -1,0 +1,78 @@
+const { expectRevert, time } = require('@openzeppelin/test-helpers');
+const ISwapToken = artifacts.require('ISwapToken');
+const SwapMonarch = artifacts.require('SwapMonarch');
+const MockERC20 = artifacts.require('MockERC20');
+
+contract('SwapMonarch', ([alice, bob, carol, dev, minter]) => {
+    beforeEach(async () => {
+        this.iswap = await ISwapToken.new({ from: alice });
+    });
+
+    context('With ERC/LP token added to the field', () => {
+        beforeEach(async () => {
+            this.lp = await MockERC20.new('LPToken', 'LP', '10000000000', { from: minter });
+            await this.lp.transfer(alice, '1000', { from: minter });
+            await this.lp.transfer(bob, '1000', { from: minter });
+            await this.lp.transfer(carol, '1000', { from: minter });
+            this.lp2 = await MockERC20.new('LPToken2', 'LP2', '10000000000', { from: minter });
+            await this.lp2.transfer(alice, '1000', { from: minter });
+            await this.lp2.transfer(bob, '1000', { from: minter });
+            await this.lp2.transfer(carol, '1000', { from: minter });
+        });
+
+        it('should set see SwapMonarch Minting Bugs', async () => {
+            // 100 per block farming rate starting at block 100 with bonus until block 1000
+            console.log("CUSTOM TEST: SwapMonarch WITHDRAWAL ERRORS BECAUSE MINTTING IS HALTED")
+            this.iswap.mint(alice, web3.utils.toWei("9999604"));
+            this.chef = await SwapMonarch.new(this.iswap.address, dev, web3.utils.toWei('30'), '100', '1000', { from: alice });
+            await this.iswap.transferOwnership(this.chef.address, { from: alice });
+            await this.chef.add('100', this.lp.address, true);
+            await this.lp.approve(this.chef.address, '1000', { from: carol });
+            await this.lp.approve(this.chef.address, '1000', { from: bob });
+            await this.chef.deposit(0, '100', { from: carol });
+            await this.chef.deposit(0, '100', { from: bob });
+            console.log("DEV BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(dev)));
+            console.log("ALICE BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(carol)));
+            console.log("BOB BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(bob)));
+            console.log("ALICE PENDING SUSHI:", web3.utils.fromWei(await this.chef.pendingISwap(0, carol)));
+            console.log("BOB  PENDING SUSHI:", web3.utils.fromWei(await this.chef.pendingISwap(0, bob)));
+            console.log("TOTAL SUPPLY:", web3.utils.fromWei(await this.iswap.totalSupply()));
+            // assert.equal((await this.iswap.balanceOf(dev)).valueOf(), '0');
+            // assert.equal((await this.iswap.totalSupply()).valueOf(), web3.utils.toWei('9998800'));
+            await time.advanceBlockTo('100');
+            await this.chef.deposit(0, '0', { from: carol }); // block 101
+            await this.chef.deposit(0, '0', { from: bob }); // block 102
+            // assert.equal((await this.iswap.balanceOf(bob)).valueOf(), web3.utils.toWei("500"));
+            // assert.equal((await this.iswap.balanceOf(dev)).valueOf(), web3.utils.toWei("100"));
+            // assert.equal((await this.iswap.totalSupply()).valueOf(), web3.utils.toWei("9999900"));
+            console.log("DEV BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(dev)));
+            console.log("ALICE BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(carol)));
+            console.log("BOB BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(bob)));
+            console.log("ALICE PENDING SUSHI:", web3.utils.fromWei(await this.chef.pendingISwap(0, carol)));
+            console.log("BOB  PENDING SUSHI:", web3.utils.fromWei(await this.chef.pendingISwap(0, bob)));
+            console.log("TOTAL SUPPLY:", web3.utils.fromWei(await this.iswap.totalSupply()));
+            await time.advanceBlockTo('103');
+            await this.chef.deposit(0, '0', { from: carol }); // block 104
+            await this.chef.deposit(0, '0', { from: bob }); // block 105
+            console.log("DEV BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(dev)));
+            console.log("ALICE BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(carol)));
+            console.log("BOB BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(bob)));
+            console.log("ALICE PENDING SUSHI:", web3.utils.fromWei(await this.chef.pendingISwap(0, carol)));
+            console.log("BOB  PENDING SUSHI:", web3.utils.fromWei(await this.chef.pendingISwap(0, bob)));
+            console.log("TOTAL SUPPLY:", web3.utils.fromWei(await this.iswap.totalSupply()));
+            // assert.equal((await this.iswap.balanceOf(bob)).valueOf(), web3.utils.toWei("1100"));
+            // assert.equal((await this.iswap.balanceOf(dev)).valueOf(), web3.utils.toWei("100"));
+            // assert.equal((await this.iswap.totalSupply()).valueOf(), web3.utils.toWei("10000000"));
+            await time.advanceBlockTo('105');
+            await this.chef.deposit(0, '0', { from: carol }); // block 106
+            await this.chef.deposit(0, '0', { from: bob }); // block 107
+            console.log("DEV BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(dev)));
+            console.log("ALICE BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(carol)));
+            console.log("BOB BALANCE:", web3.utils.fromWei(await this.iswap.balanceOf(bob)));
+            console.log("ALICE PENDING SUSHI:", web3.utils.fromWei(await this.chef.pendingISwap(0, carol)));
+            console.log("BOB  PENDING SUSHI:", web3.utils.fromWei(await this.chef.pendingISwap(0, bob)));
+            console.log("TOTAL SUPPLY:", web3.utils.fromWei(await this.iswap.totalSupply()));
+        });
+
+    });
+});
